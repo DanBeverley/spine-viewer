@@ -27,9 +27,10 @@ interface LegacyLocalAsset {
 }
 
 const getFolderName = (file: FileEntry): string | undefined => {
-    if (!file.path) return undefined;
+    const sourcePath = file.sourcePath ?? file.path;
+    if (!sourcePath) return undefined;
 
-    const segments = file.path.replace(/\\/g, "/").split("/").filter(Boolean);
+    const segments = sourcePath.replace(/\\/g, "/").split("/").filter(Boolean);
     if (segments.length < 2) return undefined;
 
     const folderName = segments[segments.length - 2].trim();
@@ -179,7 +180,10 @@ class AssetLibraryService {
             return {
                 type: file.type,
                 name: file.name,
-                path: file.path,
+                // Keep the same filename-based texture lookup shape as a
+                // fresh upload, even when an older record stored a folder
+                // relative path.
+                path: file.name,
                 data: await blobToFileEntryData(file, data)
             };
         }));

@@ -61,7 +61,10 @@ const DropZone: React.FC<DropZoneProps> = (props) => {
 						type: extension,
 						data: reader.result,
 						name: file.name,
-						path: file.path,
+						// Spine atlas page names are filenames, not the folder-relative
+						// paths supplied by directory uploads.
+						path: file.name,
+						sourcePath: file.path,
 					});
 					if (files.length === arr.length) {
 						const missing = missingFiles(files);
