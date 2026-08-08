@@ -42,8 +42,16 @@ const getStoragePath = (ownerId: string, assetKey: string, index: number, name: 
 };
 
 const dataUrlToBlob = async (dataUrl: string): Promise<Blob> => {
-    const response = await fetch(dataUrl);
-    return response.blob();
+    const match = dataUrl.match(/^data:([^;,]+)?(;base64)?,(.*)$/s);
+    if (!match) throw new Error("Invalid image data URL.");
+
+    const mimeType = match[1] || "application/octet-stream";
+    const body = match[3];
+    if (!match[2]) return new Blob([decodeURIComponent(body)], { type: mimeType });
+
+    const binary = atob(body);
+    const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+    return new Blob([bytes], { type: mimeType });
 };
 
 const fileEntryToBlob = async (file: FileEntry): Promise<Blob> => {
@@ -170,11 +178,15 @@ class AssetLibraryService {
 
         for (const [index, file] of files.entries()) {
             const storagePath = getStoragePath(ownerId, assetKey, index, file.name);
-            const { error } = await client.storage.from(BUCKET_NAME).upload(storagePath, await fileEntryToBlob(file), {
-                upsert: true,
-                contentType: file.type === "json" || file.type === "atlas" ? "text/plain" : undefined
-            });
-            if (error) throw error;
+            try {
+                const { error } = await client.storage.from(BUCKET_NAME).upload(storagePath, await fileEntryToBlob(file), {
+                    upsert: true,
+                    ...(file.type === "json" || file.type === "atlas" ? { contentType: "text/plain" } : {})
+                });
+                if (error) throw error;
+            } catch (error) {
+                throw new Error(`Could not upload ${file.name}: ${error instanceof Error ? error.message : "unknown storage error"}`);
+            }
             metadata.push({ type: file.type, name: file.name, path: file.path, storagePath });
         }
 
@@ -188,7 +200,7 @@ class AssetLibraryService {
             }, { onConflict: "owner_id,asset_key" })
             .select("id, owner_id, asset_key, name, files, created_at, updated_at")
             .single();
-        if (error) throw error;
+        if (error) throw new Error(`Files uploaded, but asset metadata could not be saved: ${error.message}`);
 
         const oldPaths = (existing?.files ?? []).map(file => file.storagePath)
             .filter(path => !metadata.some(file => file.storagePath === path));
