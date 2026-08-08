@@ -40,7 +40,7 @@ const AccountScreen = ({ onAuthenticated }: AccountScreenProps) => {
         <main className="account-screen">
             <form className="account-screen__form" onSubmit={handleSubmit}>
                 <h1>{registering ? "Create account" : "Log in"}</h1>
-                <label>Username<input value={username} onChange={event => setUsername(event.target.value)} autoComplete="username" required /></label>
+                <label>Email<input type="email" value={username} onChange={event => setUsername(event.target.value)} autoComplete="username" required /></label>
                 <label>Password<input type="password" value={password} onChange={event => setPassword(event.target.value)} autoComplete={registering ? "new-password" : "current-password"} required /></label>
                 {registering && <label>Confirm password<input type="password" value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} autoComplete="new-password" required /></label>}
                 <button type="submit" disabled={busy}>{busy ? "Please wait…" : registering ? "Create account" : "Log in"}</button>

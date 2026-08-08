@@ -56,11 +56,7 @@ const SpineLoader = ({ accountId, hasCurrentAnimation }: SpineLoaderProps) => {
     };
 
     useEffect(() => {
-        AssetLibraryService.claimLegacyAssets(accountId)
-            .then(refreshSavedAssets)
-            .catch(error => {
-                toast(`Saved asset migration unavailable: ${error instanceof Error ? error.message : "unknown error"}`, errorToast);
-            });
+        refreshSavedAssets();
     }, [accountId]);
 
     const loadFiles = (files: FileEntry[]) => {

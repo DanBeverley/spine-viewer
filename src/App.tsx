@@ -38,6 +38,8 @@ function App() {
         toast(`Account storage unavailable: ${error instanceof Error ? error.message : "unknown error"}`, { type: "error" });
         setAccount(null);
       });
+
+    return AccountService.onAuthStateChange(setAccount);
   }, []);
 
   useEffect(() => {
