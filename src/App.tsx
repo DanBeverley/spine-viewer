@@ -160,7 +160,7 @@ function App() {
         <>
           {hasLoadedFiles && !assetLibraryOpen ? (
             <>
-              <ActionBar />
+              <ActionBar accountId={account.id} />
             </>
 
           ) : (

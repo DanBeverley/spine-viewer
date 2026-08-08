@@ -2,27 +2,26 @@ import { useMemo } from "react";
 import { ActionMenuConfigItem } from "../../../config/actionMenuConfig";
 import { useSpineViewerStore } from "../../../store";
 import ActionItem from "../ActionItem";
-import events from "../../../events";
 
 interface ActionItemsProps {
     items: ActionMenuConfigItem[],
-    selectedItem: ActionMenuConfigItem | null
+    selectedItem: ActionMenuConfigItem | null,
+    assetsOpen: boolean,
+    onAssetsToggle: () => void,
+    onPanelClick: () => void
 }
 
-const ActionItems: React.FC<ActionItemsProps> = ({ items, selectedItem }) => {
+const ActionItems: React.FC<ActionItemsProps> = ({ items, selectedItem, assetsOpen, onAssetsToggle, onPanelClick }) => {
 
-    const [setMenuItem, setAssetLibraryOpen] = useSpineViewerStore(store => [
-        store.setMenuItem,
-        store.setAssetLibraryOpen
-    ]);
+    const setMenuItem = useSpineViewerStore(store => store.setMenuItem);
 
     const handleActionItemClick = (actionItemName: string) => {
         if (actionItemName === "assets") {
-            events.dispatchers.destroyPixiApp();
-            setAssetLibraryOpen(true);
+            onAssetsToggle();
             return;
         }
 
+        onPanelClick();
         setMenuItem(actionItemName);
     }
 
@@ -31,7 +30,7 @@ const ActionItems: React.FC<ActionItemsProps> = ({ items, selectedItem }) => {
     return (
         <div className="action-bar__action-items">
             {visibleItems.map(item => {
-                const selected = item.name === selectedItem?.name;
+                const selected = item.name === selectedItem?.name || (item.name === "assets" && assetsOpen);
 
                 return (
                     <ActionItem
