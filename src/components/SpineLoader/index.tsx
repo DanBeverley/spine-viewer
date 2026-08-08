@@ -56,7 +56,11 @@ const SpineLoader = ({ accountId, hasCurrentAnimation }: SpineLoaderProps) => {
     };
 
     useEffect(() => {
-        refreshSavedAssets();
+        AssetLibraryService.migrateLocalAssets(accountId)
+            .then(refreshSavedAssets)
+            .catch(error => {
+                toast(`Local asset migration unavailable: ${error instanceof Error ? error.message : "unknown error"}`, errorToast);
+            });
     }, [accountId]);
 
     const loadFiles = (files: FileEntry[]) => {

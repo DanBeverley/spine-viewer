@@ -20,6 +20,12 @@ interface StoredAssetRow {
     updated_at: string;
 }
 
+interface LegacyLocalAsset {
+    id: string;
+    name: string;
+    files: FileEntry[];
+}
+
 const getAssetName = (files: FileEntry[]): string => {
     const primaryFile = files.find(file => file.type.toLowerCase() === "json")
         ?? files.find(file => file.type.toLowerCase() === "skel");
@@ -63,6 +69,56 @@ const toPublicAsset = (row: StoredAssetRow, files: FileEntry[]): SavedSpineAsset
 });
 
 class AssetLibraryService {
+    private static async readLegacyLocalAssets(): Promise<LegacyLocalAsset[]> {
+        if (typeof indexedDB === "undefined") return [];
+
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open("spine-viewer");
+            request.onsuccess = () => {
+                const database = request.result;
+                if (!database.objectStoreNames.contains("assetSets")) {
+                    database.close();
+                    resolve([]);
+                    return;
+                }
+
+                const transaction = database.transaction("assetSets", "readonly");
+                const assetsRequest = transaction.objectStore("assetSets").getAll();
+                assetsRequest.onsuccess = () => {
+                    database.close();
+                    resolve((assetsRequest.result as LegacyLocalAsset[]).filter(asset => asset.files?.length > 0));
+                };
+                transaction.onerror = () => {
+                    database.close();
+                    reject(transaction.error ?? new Error("Unable to read local saved assets."));
+                };
+            };
+            request.onerror = () => reject(request.error ?? new Error("Unable to read local saved assets."));
+        });
+    }
+
+    private static async removeLegacyLocalAssets(ids: string[]): Promise<void> {
+        if (ids.length === 0 || typeof indexedDB === "undefined") return;
+
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open("spine-viewer");
+            request.onsuccess = () => {
+                const database = request.result;
+                if (!database.objectStoreNames.contains("assetSets")) {
+                    database.close();
+                    resolve();
+                    return;
+                }
+                const transaction = database.transaction("assetSets", "readwrite");
+                const store = transaction.objectStore("assetSets");
+                ids.forEach(id => store.delete(id));
+                transaction.oncomplete = () => { database.close(); resolve(); };
+                transaction.onerror = () => { database.close(); reject(transaction.error ?? new Error("Unable to remove migrated local assets.")); };
+            };
+            request.onerror = () => reject(request.error ?? new Error("Unable to remove migrated local assets."));
+        });
+    }
+
     private static async getRow(ownerId: string, assetKey: string): Promise<StoredAssetRow | null> {
         const client = requireSupabase();
         const { data, error } = await client
@@ -159,6 +215,18 @@ class AssetLibraryService {
         if (error) throw error;
         const { error: storageError } = await client.storage.from(BUCKET_NAME).remove(row.files.map(file => file.storagePath));
         if (storageError) throw storageError;
+    }
+
+    public static async migrateLocalAssets(ownerId: string): Promise<void> {
+        const localAssets = await this.readLegacyLocalAssets();
+        const migratedIds: string[] = [];
+
+        for (const asset of localAssets) {
+            await this.save(asset.files, ownerId, asset.name);
+            migratedIds.push(asset.id);
+        }
+
+        await this.removeLegacyLocalAssets(migratedIds);
     }
 }
 
