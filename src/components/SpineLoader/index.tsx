@@ -39,8 +39,10 @@ const SpineLoader = ({ accountId, hasCurrentAnimation }: SpineLoaderProps) => {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editingName, setEditingName] = useState("");
 
-    const { setLoadedFiles, setFilesLoading, setAssetLibraryOpen } = useSpineViewerStore(state => ({
+    const { suspendedFiles, setLoadedFiles, setSuspendedFiles, setFilesLoading, setAssetLibraryOpen } = useSpineViewerStore(state => ({
+        suspendedFiles: state.suspendedFiles,
         setLoadedFiles: state.setLoadedFiles,
+        setSuspendedFiles: state.setSuspendedFiles,
         setFilesLoading: state.setFilesLoading,
         setAssetLibraryOpen: state.setAssetLibraryOpen
     }));
@@ -64,6 +66,7 @@ const SpineLoader = ({ accountId, hasCurrentAnimation }: SpineLoaderProps) => {
     const loadFiles = (files: FileEntry[]) => {
         events.dispatchers.destroyPixiApp();
         setLoadedFiles(files);
+        setSuspendedFiles([]);
         setFilesLoading(false);
         setAssetLibraryOpen(false);
     };
@@ -136,8 +139,18 @@ const SpineLoader = ({ accountId, hasCurrentAnimation }: SpineLoaderProps) => {
     return (
         <main className="spine-loader">
             <div className="spine-loader__toolbar">
-                {hasCurrentAnimation && (
-                    <button type="button" className="spine-loader__return-button" onClick={() => setAssetLibraryOpen(false)}>
+                {(hasCurrentAnimation || suspendedFiles.length > 0) && (
+                    <button
+                        type="button"
+                        className="spine-loader__return-button"
+                        onClick={() => {
+                            if (suspendedFiles.length > 0) {
+                                setLoadedFiles(suspendedFiles);
+                                setSuspendedFiles([]);
+                            }
+                            setAssetLibraryOpen(false);
+                        }}
+                    >
                         Return to current animation
                     </button>
                 )}

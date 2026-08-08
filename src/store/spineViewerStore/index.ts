@@ -9,6 +9,7 @@ export interface SpineViewerStore {
     actionMenuItems: ActionMenuConfigItem[],
     selectedActionMenuItem: ActionMenuConfigItem | null,
     loadedFiles: FileEntry[];
+    suspendedFiles: FileEntry[];
     filesLoading: boolean;
     animations: string[];
     skins: string[];
@@ -28,6 +29,7 @@ export interface SpineViewerActions {
     setFilesLoading: (filesLoading: boolean) => void;
     setMenuItem: (menuItemName: string) => void;
     setLoadedFiles: (loadedFiles: FileEntry[]) => void;
+    setSuspendedFiles: (suspendedFiles: FileEntry[]) => void;
     setLoopAnimations: (loopAnimations: boolean) => void;
     setTimeScale: (timeScale: number) => void;
     setAssetLibraryOpen: (assetLibraryOpen: boolean) => void;
@@ -40,6 +42,7 @@ const initialState: SpineViewerStore = {
     selectedActionMenuItem: null,
     filesLoading: false,
     loadedFiles: [],
+    suspendedFiles: [],
     timeline: [],
     mixins: [],
     animations: [],
@@ -83,6 +86,9 @@ export const useSpineViewerStore = create<SpineViewerStore & SpineViewerActions>
         },
         setLoadedFiles: (loadedFiles: FileEntry[]) => {
             set(_ => ({ loadedFiles }))
+        },
+        setSuspendedFiles: (suspendedFiles: FileEntry[]) => {
+            set(_ => ({ suspendedFiles }))
         },
         setMenuItem: (menuItemName: string) => {
             set(state => {

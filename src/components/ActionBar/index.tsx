@@ -37,11 +37,10 @@ const getCurrentPanel = (key: string): JSX.Element | null => {
 }
 
 const ActionBar: React.FC<ActionBarProps> = () => {
-    const [selectedActionMenuItem, actionMenuItems, setMenuItem, setMultiple, setAssetLibraryOpen] = useSpineViewerStore(store => [
+    const [selectedActionMenuItem, actionMenuItems, setMenuItem, setAssetLibraryOpen] = useSpineViewerStore(store => [
         store.selectedActionMenuItem,
         store.actionMenuItems,
         store.setMenuItem,
-        store.setMultiple,
         store.setAssetLibraryOpen
     ]);
 
@@ -67,8 +66,10 @@ const ActionBar: React.FC<ActionBarProps> = () => {
                         aria-label="Load new Spine"
                         title="Load new Spine"
                         onClick={() => {
+                            const currentFiles = useSpineViewerStore.getState().loadedFiles;
                             events.dispatchers.destroyPixiApp();
-                            setMultiple({ selectedActionMenuItem: null });
+                            useSpineViewerStore.getState().reset();
+                            useSpineViewerStore.getState().setSuspendedFiles(currentFiles);
                             setAssetLibraryOpen(true);
                         }}
                     >

@@ -18,9 +18,10 @@ import { ViewerAccount } from './interfaces';
 function App() {
   const [account, setAccount] = useState<ViewerAccount | null | undefined>(undefined);
 
-  const { filesLoading, loadedFiles, assetLibraryOpen, setMultiple, initAsyncData, reset } = useSpineViewerStore(store => ({
+  const { filesLoading, loadedFiles, suspendedFiles, assetLibraryOpen, setMultiple, initAsyncData, reset } = useSpineViewerStore(store => ({
     filesLoading: store.filesLoading,
     loadedFiles: store.loadedFiles,
+    suspendedFiles: store.suspendedFiles,
     assetLibraryOpen: store.assetLibraryOpen,
     setMultiple: store.setMultiple,
     initAsyncData: store.initAsyncData,
@@ -129,7 +130,7 @@ function App() {
             </>
 
           ) : (
-            <SpineLoader hasCurrentAnimation={hasLoadedFiles} accountId={account.id} />
+            <SpineLoader hasCurrentAnimation={hasLoadedFiles || suspendedFiles.length > 0} accountId={account.id} />
           )}
         </>
 
