@@ -1,10 +1,3 @@
-export interface DebugConfigOption {
-    prop: string;
-    label: string;
-    value: boolean;
-}
-
-
 export interface DispatchOptions<T> {
     eventId: string;
     target?: EventTarget;
@@ -45,11 +38,6 @@ export interface SpineMixin {
     fromAnim: string;
     toAnim: string;
     duration: number;
-}
-
-export interface DebugOption {
-    option: string;
-    value: boolean;
 }
 
 export interface SpineData {

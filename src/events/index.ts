@@ -1,4 +1,3 @@
-import { debugOptionChange } from "./dispatchers/debugOptionChange";
 import { destroyPixiApp } from "./dispatchers/destroyPixiApp";
 import { filesLoaded } from "./dispatchers/filesLoaded";
 import { setMixin } from "./dispatchers/setMixin";
@@ -8,7 +7,6 @@ import { skinChange } from "./dispatchers/skinChange";
 import { spineCreated } from "./dispatchers/spineCreated";
 import { startAnimation } from "./dispatchers/startAnimation";
 import { timelinePlay } from "./dispatchers/timelinePlay";
-import { onDebugOptionChange } from "./handlers/onDebugOptionsChange";
 import { onDestroyPixiApp } from "./handlers/onDestroyPixiApp";
 import { onFilesLoaded } from "./handlers/onFilesLoaded";
 import { onSetMixin } from "./handlers/onSetMixin";
@@ -23,7 +21,6 @@ import { onSpineEvent } from "./handlers/onSpineEvent";
 import { remove } from "./remove";
 
 const dispatchers = {
-    debugOptionChange,
     destroyPixiApp,
     filesLoaded,
     setMixin,
@@ -37,7 +34,6 @@ const dispatchers = {
 };
 
 const handlers = {
-    onDebugOptionChange,
     onDestroyPixiApp,
     onFilesLoaded,
     onSetMixin,

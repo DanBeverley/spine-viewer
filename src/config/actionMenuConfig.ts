@@ -19,12 +19,6 @@ const actionMenuConfig: ActionMenuConfigItem[] = [
         visible: true
     },
     {
-        icon: "/assets/svg/debug.svg",
-        name: "debug",
-        label: "Debug",
-        visible: true
-    },
-    {
         icon: "/assets/images/play-grey.png",
         name: "mixins",
         label: "Mixins",

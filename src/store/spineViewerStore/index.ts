@@ -1,9 +1,8 @@
 import actionMenuConfig, { ActionMenuConfigItem } from "../../config/actionMenuConfig";
 import create from "zustand";
 import { devtools } from "zustand/middleware";
-import { DebugConfigOption, FileEntry, TimelineEntry } from "../../interfaces";
+import { FileEntry, TimelineEntry } from "../../interfaces";
 import { SpineMixin } from "../../interfaces";
-import debugConfig from "../../config/debugConfig";
 import SpineLoaderService from "../../services/SpineLoaderService";
 
 export interface SpineViewerStore {
@@ -13,7 +12,6 @@ export interface SpineViewerStore {
     filesLoading: boolean;
     animations: string[];
     skins: string[];
-    debugOptions: DebugConfigOption[];
     timeline: TimelineEntry[];
     mixins: SpineMixin[];
     loopAnimations: boolean;
@@ -26,7 +24,6 @@ export interface SpineViewerActions {
     setAnimations: (animations: string[]) => void;
     setMixins: (mixins: SpineMixin[]) => void;
     setTimeline: (timeline: TimelineEntry[]) => void;
-    setDebugOptions: (debugOptions: DebugConfigOption[]) => void;
     setFilesLoading: (filesLoading: boolean) => void;
     setMenuItem: (menuItemName: string) => void;
     setLoadedFiles: (loadedFiles: FileEntry[]) => void;
@@ -47,11 +44,6 @@ const initialState: SpineViewerStore = {
     skins: [],
     loopAnimations: false,
     timeScale: 1,
-    debugOptions: (() => {
-        return debugConfig.debugOptions.map(option => {
-            return { ...option };
-        })
-    })()
 }
 
 export const useSpineViewerStore = create<SpineViewerStore & SpineViewerActions>()(
@@ -79,9 +71,6 @@ export const useSpineViewerStore = create<SpineViewerStore & SpineViewerActions>
         },
         setTimeScale: (timeScale: number) => {
             set(_ => ({ timeScale }))
-        },
-        setDebugOptions: (debugOptions: DebugConfigOption[]) => {
-            set(_ => ({ debugOptions }))
         },
         setFilesLoading: (filesLoading: boolean) => {
             set(_ => ({ filesLoading }))

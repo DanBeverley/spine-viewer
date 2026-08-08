@@ -1,7 +1,7 @@
 import { useSpineViewerStore } from "../../store";
+import events from "../../events";
 import ActionPanel from "../ActionPanel";
 import Animations from "../ActionPanel/Animations";
-import Debug from "../ActionPanel/Debug";
 import Mixins from "../ActionPanel/Mixins";
 import Settings from "../ActionPanel/Settings";
 import Skins from "../ActionPanel/Skins";
@@ -21,9 +21,6 @@ const getCurrentPanel = (key: string): JSX.Element | null => {
 
         case "skins":
             return <Skins />;
-
-        case "debug":
-            return <Debug />;
 
         case "mixins":
             return <Mixins />;
@@ -61,7 +58,21 @@ const ActionBar: React.FC<ActionBarProps> = () => {
         <>
             <div className="action-bar">
                 <ActionItems items={actionMenuItems} selectedItem={selectedActionMenuItem} />
-                <SettingsButton onClick={handleSettingsClick} />
+                <div className="action-bar__bottom-actions">
+                    <button
+                        type="button"
+                        className="action-bar__load-button"
+                        aria-label="Load new Spine"
+                        title="Load new Spine"
+                        onClick={() => {
+                            events.dispatchers.destroyPixiApp();
+                            useSpineViewerStore.getState().reset();
+                        }}
+                    >
+                        +
+                    </button>
+                    <SettingsButton onClick={handleSettingsClick} />
+                </div>
             </div>
             <ActionPanel open={selectedActionMenuItem !== null}>
                 {selectedActionMenuItem && getCurrentPanel(selectedActionMenuItem.name)}

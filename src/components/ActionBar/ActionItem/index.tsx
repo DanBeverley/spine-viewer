@@ -11,10 +11,15 @@ const ActionItem: React.FC<ActionItemProps> = ({ name, icon, label, selected, on
     const className = `action-bar__action-item ${selected ? "action-bar__action-item--selected" : ""}`;
 
     return (
-        <div className={className} onClick={() => onClick(name)}>
-            <img className="action-item__icon" src={icon} alt={`${label} icon`} />
-            <p className="action-item__label">{label}</p>
-        </div>
+        <button
+            type="button"
+            className={className}
+            onClick={() => onClick(name)}
+            aria-label={label}
+            title={label}
+        >
+            <img className="action-item__icon" src={icon} alt="" aria-hidden="true" />
+        </button>
     );
 };
 

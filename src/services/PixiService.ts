@@ -5,28 +5,15 @@ import * as spine41 from "@pixi-spine/runtime-4.1";
 import { Spine } from "./SpineUniSourceCode";
 import { detectSpineVersion, SPINE_VERSION } from "./versions";
 
-// Import classes for spineDebug
-import {
-    RegionAttachment,
-    MeshAttachment,
-    ClippingAttachment,
-    SkeletonBounds,
-    PathAttachment,
-} from "@pixi-spine/runtime-3.8";
-
 import {
     Application,
     BaseTexture,
     Sprite,
     Texture,
-    Container,
-    Graphics,
-
 } from "pixi.js";
 import events from "../events";
-import { AnimationPlayData, DebugOption, FilesLoadedData, SpineMixin } from "../interfaces";
+import { AnimationPlayData, FilesLoadedData, SpineMixin } from "../interfaces";
 import { hexStringToNumber } from "../utils/numberUtils";
-import { spineDebug } from "../utils/spineDebug";
 
 interface PixiDragEvent {
     data: {
@@ -55,7 +42,6 @@ enum PixiServiceRemoveHandlers {
     ON_SET_MIXIN,
     ON_SET_CANVAS_BACKGROUND,
     ON_TIMELINE_PLAY,
-    ON_DEBUG_OPTION_CHANGED,
     ON_SETUP_POSE,
     ON_DESTROY_PIXI_APP,
     ON_FILES_LOADED,
@@ -77,21 +63,6 @@ class PixiService {
     private handlerRemovers: HandlerRemover<PixiServiceRemoveHandlers>[];
 
     constructor() {
-        const spineClassesForDebug = {
-            Spine,
-            core: {
-                RegionAttachment,
-                MeshAttachment,
-                ClippingAttachment,
-                SkeletonBounds,
-                PathAttachment
-            }
-        };
-        const pixiClassesForDebug = {
-            Container,
-            Graphics
-        };
-        spineDebug(spineClassesForDebug, pixiClassesForDebug);
         this.app = null;
         this.background = null;
         this.spine = null;
@@ -122,10 +93,6 @@ class PixiService {
         this.handlerRemovers.push({
             name: PixiServiceRemoveHandlers.ON_TIMELINE_PLAY,
             removeHandler: events.handlers.onTimelinePlay(this.onTimelinePlay.bind(this))
-        });
-        this.handlerRemovers.push({
-            name: PixiServiceRemoveHandlers.ON_DEBUG_OPTION_CHANGED,
-            removeHandler: events.handlers.onDebugOptionChange(this.onDebugOptionChange.bind(this))
         });
         this.handlerRemovers.push({
             name: PixiServiceRemoveHandlers.ON_SETUP_POSE,
@@ -198,13 +165,6 @@ class PixiService {
             }
         })
 
-    }
-
-    private onDebugOptionChange(debugOption: DebugOption): void {
-        if (this.spine) {
-            // @ts-ignore
-            this.spine[debugOption.option] = debugOption.value;
-        }
     }
 
     private onSetupPose(): void {
@@ -350,9 +310,6 @@ class PixiService {
         const spineJsonParser = new SpineParser(spineAtlasLoader);
         const spineData = spineJsonParser.readSkeletonData(rawSkeletonData);
         this.spine = new Spine(spineData);
-
-        // @ts-ignore
-        this.spine["drawDebug"] = true;
 
         const wrapper = document.getElementById("canvas-wrapper");
 
