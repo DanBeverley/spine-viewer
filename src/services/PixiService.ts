@@ -16,6 +16,8 @@ import { AnimationPlayData, FilesLoadedData, SpineMixin } from "../interfaces";
 import { hexStringToNumber } from "../utils/numberUtils";
 import { useSpineViewerStore } from "../store";
 
+const MAX_RENDER_RESOLUTION = 2;
+
 interface PixiDragEvent {
     data: {
         global: {
@@ -331,6 +333,8 @@ class PixiService {
             antialias: true,
             width: window.innerWidth,
             height: window.innerHeight,
+            resolution: Math.min(window.devicePixelRatio || 1, MAX_RENDER_RESOLUTION),
+            autoDensity: true,
         });
         wrapper?.appendChild(this.app.view);
 
@@ -348,8 +352,8 @@ class PixiService {
 
         this.app.stage.addChild(this.background);
 
-        this.spine.x = this.app.renderer.width / 2;
-        this.spine.y = this.app.renderer.height / 2;
+        this.spine.x = this.app.screen.width / 2;
+        this.spine.y = this.app.screen.height / 2;
         // @ts-ignore
         this.app.stage.addChild(this.spine);
         this.appInitialized = true;
@@ -481,7 +485,21 @@ class PixiService {
 
     private onResize() {
         if (this.app && this.app.view) {
+            const previousCenter = {
+                x: this.app.screen.width / 2,
+                y: this.app.screen.height / 2
+            };
             this.app.renderer.resize(window.innerWidth, window.innerHeight);
+
+            if (this.background) {
+                this.background.width = this.app.screen.width;
+                this.background.height = this.app.screen.height;
+            }
+
+            if (this.spine) {
+                this.spine.x += this.app.screen.width / 2 - previousCenter.x;
+                this.spine.y += this.app.screen.height / 2 - previousCenter.y;
+            }
         }
     }
 
