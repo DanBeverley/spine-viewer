@@ -1,9 +1,20 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+const configuredUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const supabaseUrl = configuredUrl?.trim().replace(/\/+$/, "");
+const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim();
 
-export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+const hasValidSupabaseUrl = (() => {
+    if (!supabaseUrl) return false;
+    try {
+        const parsed = new URL(supabaseUrl);
+        return (parsed.protocol === "https:" || parsed.protocol === "http:") && parsed.pathname === "/";
+    } catch {
+        return false;
+    }
+})();
+
+export const isSupabaseConfigured = Boolean(hasValidSupabaseUrl && supabaseAnonKey);
 
 export const supabase = isSupabaseConfigured
     ? createClient(supabaseUrl as string, supabaseAnonKey as string, {
@@ -17,7 +28,7 @@ export const supabase = isSupabaseConfigured
 
 export const requireSupabase = () => {
     if (!supabase) {
-        throw new Error("Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.");
+        throw new Error("Invalid Supabase configuration. VITE_SUPABASE_URL must look like https://your-project-ref.supabase.co.");
     }
     return supabase;
 };
