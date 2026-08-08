@@ -3,7 +3,7 @@ import * as spine37 from "@pixi-spine/runtime-3.7";
 import * as spine38 from "@pixi-spine/runtime-3.8";
 import * as spine41 from "@pixi-spine/runtime-4.1";
 import { Spine } from "./SpineUniSourceCode";
-import { detectSpineVersion, SPINE_VERSION } from "./versions";
+import { detectSpineVersion, readSpineBinaryVersion, SPINE_VERSION } from "./versions";
 
 import {
     Application,
@@ -364,6 +364,8 @@ class PixiService {
         if (rawJson) {
             const jsonData = JSON.parse(rawJson as string);
             versionString = jsonData.skeleton?.spine;
+        } else if (rawSkeleton) {
+            versionString = readSpineBinaryVersion(rawSkeleton);
         }
         const detectedVersion = detectSpineVersion(versionString);
         
