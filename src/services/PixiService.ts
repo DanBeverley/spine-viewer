@@ -14,6 +14,7 @@ import {
 import events from "../events";
 import { AnimationPlayData, FilesLoadedData, SpineMixin } from "../interfaces";
 import { hexStringToNumber } from "../utils/numberUtils";
+import { useSpineViewerStore } from "../store";
 
 interface PixiDragEvent {
     data: {
@@ -42,6 +43,7 @@ enum PixiServiceRemoveHandlers {
     ON_SET_MIXIN,
     ON_SET_CANVAS_BACKGROUND,
     ON_TIMELINE_PLAY,
+    ON_ANIMATION_TIME_SCALE_CHANGED,
     ON_SETUP_POSE,
     ON_DESTROY_PIXI_APP,
     ON_FILES_LOADED,
@@ -95,6 +97,10 @@ class PixiService {
             removeHandler: events.handlers.onTimelinePlay(this.onTimelinePlay.bind(this))
         });
         this.handlerRemovers.push({
+            name: PixiServiceRemoveHandlers.ON_ANIMATION_TIME_SCALE_CHANGED,
+            removeHandler: events.handlers.onAnimationTimeScaleChanged(this.onAnimationTimeScaleChanged.bind(this))
+        });
+        this.handlerRemovers.push({
             name: PixiServiceRemoveHandlers.ON_SETUP_POSE,
             removeHandler: events.handlers.onSetupPose(this.onSetupPose.bind(this))
         });
@@ -139,6 +145,12 @@ class PixiService {
     private onSetCanvasBackground(background: string): void {
         if (this.background) {
             this.background.tint = hexStringToNumber(background);
+        }
+    }
+
+    private onAnimationTimeScaleChanged(timeScale: number): void {
+        if (this.spine) {
+            this.spine.state.timeScale = timeScale;
         }
     }
 
@@ -310,6 +322,7 @@ class PixiService {
         const spineJsonParser = new SpineParser(spineAtlasLoader);
         const spineData = spineJsonParser.readSkeletonData(rawSkeletonData);
         this.spine = new Spine(spineData);
+        this.spine.state.timeScale = useSpineViewerStore.getState().timeScale;
 
         const wrapper = document.getElementById("canvas-wrapper");
 
