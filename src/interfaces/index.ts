@@ -27,6 +27,7 @@ export interface FileEntry {
     data: string | ArrayBuffer | null;
     name: string;
     path: string | undefined;
+    sourcePath?: string;
 }
 
 export interface FilesLoadedData {
