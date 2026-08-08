@@ -1,10 +1,3 @@
-export interface DebugConfigOption {
-    prop: string;
-    label: string;
-    value: boolean;
-}
-
-
 export interface DispatchOptions<T> {
     eventId: string;
     target?: EventTarget;
@@ -47,11 +40,6 @@ export interface SpineMixin {
     duration: number;
 }
 
-export interface DebugOption {
-    option: string;
-    value: boolean;
-}
-
 export interface SpineData {
     animations: string[];
     skins: string[];
@@ -65,4 +53,17 @@ export interface AnimationPlayData {
 export interface TimelineEntry {
     id: string;
     animation: string;
+}
+
+export interface SavedSpineAsset {
+    id: string;
+    name: string;
+    createdAt: number;
+    updatedAt: number;
+    files: FileEntry[];
+}
+
+export interface ViewerAccount {
+    id: string;
+    username: string;
 }

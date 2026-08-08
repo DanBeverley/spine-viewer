@@ -1,23 +1,23 @@
 import actionMenuConfig, { ActionMenuConfigItem } from "../../config/actionMenuConfig";
 import create from "zustand";
 import { devtools } from "zustand/middleware";
-import { DebugConfigOption, FileEntry, TimelineEntry } from "../../interfaces";
+import { FileEntry, TimelineEntry } from "../../interfaces";
 import { SpineMixin } from "../../interfaces";
-import debugConfig from "../../config/debugConfig";
 import SpineLoaderService from "../../services/SpineLoaderService";
 
 export interface SpineViewerStore {
     actionMenuItems: ActionMenuConfigItem[],
     selectedActionMenuItem: ActionMenuConfigItem | null,
     loadedFiles: FileEntry[];
+    suspendedFiles: FileEntry[];
     filesLoading: boolean;
     animations: string[];
     skins: string[];
-    debugOptions: DebugConfigOption[];
     timeline: TimelineEntry[];
     mixins: SpineMixin[];
     loopAnimations: boolean;
     timeScale: number;
+    assetLibraryOpen: boolean;
 }
 
 export interface SpineViewerActions {
@@ -26,12 +26,13 @@ export interface SpineViewerActions {
     setAnimations: (animations: string[]) => void;
     setMixins: (mixins: SpineMixin[]) => void;
     setTimeline: (timeline: TimelineEntry[]) => void;
-    setDebugOptions: (debugOptions: DebugConfigOption[]) => void;
     setFilesLoading: (filesLoading: boolean) => void;
     setMenuItem: (menuItemName: string) => void;
     setLoadedFiles: (loadedFiles: FileEntry[]) => void;
+    setSuspendedFiles: (suspendedFiles: FileEntry[]) => void;
     setLoopAnimations: (loopAnimations: boolean) => void;
     setTimeScale: (timeScale: number) => void;
+    setAssetLibraryOpen: (assetLibraryOpen: boolean) => void;
     reset: () => void;
     initAsyncData: () => void;
 }
@@ -41,17 +42,14 @@ const initialState: SpineViewerStore = {
     selectedActionMenuItem: null,
     filesLoading: false,
     loadedFiles: [],
+    suspendedFiles: [],
     timeline: [],
     mixins: [],
     animations: [],
     skins: [],
-    loopAnimations: false,
+    loopAnimations: true,
     timeScale: 1,
-    debugOptions: (() => {
-        return debugConfig.debugOptions.map(option => {
-            return { ...option };
-        })
-    })()
+    assetLibraryOpen: false,
 }
 
 export const useSpineViewerStore = create<SpineViewerStore & SpineViewerActions>()(
@@ -80,14 +78,17 @@ export const useSpineViewerStore = create<SpineViewerStore & SpineViewerActions>
         setTimeScale: (timeScale: number) => {
             set(_ => ({ timeScale }))
         },
-        setDebugOptions: (debugOptions: DebugConfigOption[]) => {
-            set(_ => ({ debugOptions }))
+        setAssetLibraryOpen: (assetLibraryOpen: boolean) => {
+            set(_ => ({ assetLibraryOpen }))
         },
         setFilesLoading: (filesLoading: boolean) => {
             set(_ => ({ filesLoading }))
         },
         setLoadedFiles: (loadedFiles: FileEntry[]) => {
             set(_ => ({ loadedFiles }))
+        },
+        setSuspendedFiles: (suspendedFiles: FileEntry[]) => {
+            set(_ => ({ suspendedFiles }))
         },
         setMenuItem: (menuItemName: string) => {
             set(state => {

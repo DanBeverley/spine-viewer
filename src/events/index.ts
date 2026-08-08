@@ -1,4 +1,3 @@
-import { debugOptionChange } from "./dispatchers/debugOptionChange";
 import { destroyPixiApp } from "./dispatchers/destroyPixiApp";
 import { filesLoaded } from "./dispatchers/filesLoaded";
 import { setMixin } from "./dispatchers/setMixin";
@@ -8,7 +7,6 @@ import { skinChange } from "./dispatchers/skinChange";
 import { spineCreated } from "./dispatchers/spineCreated";
 import { startAnimation } from "./dispatchers/startAnimation";
 import { timelinePlay } from "./dispatchers/timelinePlay";
-import { onDebugOptionChange } from "./handlers/onDebugOptionsChange";
 import { onDestroyPixiApp } from "./handlers/onDestroyPixiApp";
 import { onFilesLoaded } from "./handlers/onFilesLoaded";
 import { onSetMixin } from "./handlers/onSetMixin";
@@ -19,11 +17,14 @@ import { onSpineCreated } from "./handlers/onSpineCreated";
 import { onStartAnimation } from "./handlers/onStartAnimation";
 import { onTimelinePlay } from "./handlers/onTimelinePlay";
 import { spineEvent } from "./dispatchers/spineEvent";
+import { animationTimeScaleChanged } from "./dispatchers/animationTimeScaleChanged";
+import { animationLoopChanged } from "./dispatchers/animationLoopChanged";
 import { onSpineEvent } from "./handlers/onSpineEvent";
+import { onAnimationTimeScaleChanged } from "./handlers/onAnimationTimeScaleChanged";
+import { onAnimationLoopChanged } from "./handlers/onAnimationLoopChanged";
 import { remove } from "./remove";
 
 const dispatchers = {
-    debugOptionChange,
     destroyPixiApp,
     filesLoaded,
     setMixin,
@@ -33,11 +34,12 @@ const dispatchers = {
     spineCreated,
     startAnimation,
     timelinePlay,
-    spineEvent
+    spineEvent,
+    animationTimeScaleChanged,
+    animationLoopChanged
 };
 
 const handlers = {
-    onDebugOptionChange,
     onDestroyPixiApp,
     onFilesLoaded,
     onSetMixin,
@@ -47,7 +49,9 @@ const handlers = {
     onSpineCreated,
     onStartAnimation,
     onTimelinePlay,
-    onSpineEvent
+    onSpineEvent,
+    onAnimationTimeScaleChanged,
+    onAnimationLoopChanged
 };
 
 export default {

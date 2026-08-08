@@ -1,7 +1,7 @@
 import { useSpineViewerStore } from "../../store";
+import events from "../../events";
 import ActionPanel from "../ActionPanel";
 import Animations from "../ActionPanel/Animations";
-import Debug from "../ActionPanel/Debug";
 import Mixins from "../ActionPanel/Mixins";
 import Settings from "../ActionPanel/Settings";
 import Skins from "../ActionPanel/Skins";
@@ -22,9 +22,6 @@ const getCurrentPanel = (key: string): JSX.Element | null => {
         case "skins":
             return <Skins />;
 
-        case "debug":
-            return <Debug />;
-
         case "mixins":
             return <Mixins />;
 
@@ -40,10 +37,11 @@ const getCurrentPanel = (key: string): JSX.Element | null => {
 }
 
 const ActionBar: React.FC<ActionBarProps> = () => {
-    const [selectedActionMenuItem, actionMenuItems, setMenuItem] = useSpineViewerStore(store => [
+    const [selectedActionMenuItem, actionMenuItems, setMenuItem, setAssetLibraryOpen] = useSpineViewerStore(store => [
         store.selectedActionMenuItem,
         store.actionMenuItems,
-        store.setMenuItem
+        store.setMenuItem,
+        store.setAssetLibraryOpen
     ]);
 
     let panelContent = null;
@@ -61,7 +59,24 @@ const ActionBar: React.FC<ActionBarProps> = () => {
         <>
             <div className="action-bar">
                 <ActionItems items={actionMenuItems} selectedItem={selectedActionMenuItem} />
-                <SettingsButton onClick={handleSettingsClick} />
+                <div className="action-bar__bottom-actions">
+                    <button
+                        type="button"
+                        className="action-bar__load-button"
+                        aria-label="Load new Spine"
+                        title="Load new Spine"
+                        onClick={() => {
+                            const currentFiles = useSpineViewerStore.getState().loadedFiles;
+                            events.dispatchers.destroyPixiApp();
+                            useSpineViewerStore.getState().reset();
+                            useSpineViewerStore.getState().setSuspendedFiles(currentFiles);
+                            setAssetLibraryOpen(true);
+                        }}
+                    >
+                        +
+                    </button>
+                    <SettingsButton onClick={handleSettingsClick} />
+                </div>
             </div>
             <ActionPanel open={selectedActionMenuItem !== null}>
                 {selectedActionMenuItem && getCurrentPanel(selectedActionMenuItem.name)}

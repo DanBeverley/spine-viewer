@@ -5,28 +5,21 @@ import * as spine41 from "@pixi-spine/runtime-4.1";
 import { Spine } from "./SpineUniSourceCode";
 import { detectSpineVersion, SPINE_VERSION } from "./versions";
 
-// Import classes for spineDebug
-import {
-    RegionAttachment,
-    MeshAttachment,
-    ClippingAttachment,
-    SkeletonBounds,
-    PathAttachment,
-} from "@pixi-spine/runtime-3.8";
-
 import {
     Application,
     BaseTexture,
     Sprite,
     Texture,
-    Container,
-    Graphics,
-
 } from "pixi.js";
 import events from "../events";
-import { AnimationPlayData, DebugOption, FilesLoadedData, SpineMixin } from "../interfaces";
+import { AnimationPlayData, FilesLoadedData, SpineMixin } from "../interfaces";
 import { hexStringToNumber } from "../utils/numberUtils";
-import { spineDebug } from "../utils/spineDebug";
+import { useSpineViewerStore } from "../store";
+
+// Render at Retina/high-DPI density without changing logical coordinates or
+// re-encoding the user's source textures. Three is the native DPR of many
+// iPhones, while still preventing unbounded framebuffer growth on desktop.
+const MAX_RENDER_RESOLUTION = 3;
 
 interface PixiDragEvent {
     data: {
@@ -55,7 +48,8 @@ enum PixiServiceRemoveHandlers {
     ON_SET_MIXIN,
     ON_SET_CANVAS_BACKGROUND,
     ON_TIMELINE_PLAY,
-    ON_DEBUG_OPTION_CHANGED,
+    ON_ANIMATION_TIME_SCALE_CHANGED,
+    ON_ANIMATION_LOOP_CHANGED,
     ON_SETUP_POSE,
     ON_DESTROY_PIXI_APP,
     ON_FILES_LOADED,
@@ -75,23 +69,10 @@ class PixiService {
     private initialPointerPosition: Point | null;
     private initialSpinePosition: Point | null;
     private handlerRemovers: HandlerRemover<PixiServiceRemoveHandlers>[];
+    private sequenceActive: boolean;
+    private sequenceIndex: number;
 
     constructor() {
-        const spineClassesForDebug = {
-            Spine,
-            core: {
-                RegionAttachment,
-                MeshAttachment,
-                ClippingAttachment,
-                SkeletonBounds,
-                PathAttachment
-            }
-        };
-        const pixiClassesForDebug = {
-            Container,
-            Graphics
-        };
-        spineDebug(spineClassesForDebug, pixiClassesForDebug);
         this.app = null;
         this.background = null;
         this.spine = null;
@@ -100,6 +81,8 @@ class PixiService {
         this.initialPointerPosition = null;
         this.initialSpinePosition = null;
         this.handlerRemovers = [];
+        this.sequenceActive = false;
+        this.sequenceIndex = 0;
     }
 
     public init(): void {
@@ -124,8 +107,12 @@ class PixiService {
             removeHandler: events.handlers.onTimelinePlay(this.onTimelinePlay.bind(this))
         });
         this.handlerRemovers.push({
-            name: PixiServiceRemoveHandlers.ON_DEBUG_OPTION_CHANGED,
-            removeHandler: events.handlers.onDebugOptionChange(this.onDebugOptionChange.bind(this))
+            name: PixiServiceRemoveHandlers.ON_ANIMATION_TIME_SCALE_CHANGED,
+            removeHandler: events.handlers.onAnimationTimeScaleChanged(this.onAnimationTimeScaleChanged.bind(this))
+        });
+        this.handlerRemovers.push({
+            name: PixiServiceRemoveHandlers.ON_ANIMATION_LOOP_CHANGED,
+            removeHandler: events.handlers.onAnimationLoopChanged(this.onAnimationLoopChanged.bind(this))
         });
         this.handlerRemovers.push({
             name: PixiServiceRemoveHandlers.ON_SETUP_POSE,
@@ -150,10 +137,15 @@ class PixiService {
     }
 
     private onStartAnimation(animationData: AnimationPlayData): void {
+        this.sequenceActive = false;
         this.spine?.state.clearTrack(0);
         this.spine?.state.clearListeners();
         this.spine?.skeleton.setToSetupPose();
-        this.spine?.state.setAnimation(0, animationData.animation, animationData.loop);
+        if (!animationData.loop) {
+            this.startAnimationSequence(animationData.animation);
+            return;
+        }
+        this.spine?.state.setAnimation(0, animationData.animation, true);
         this.spine?.state.addListener({
             event: (_, event) => {
                 events.dispatchers.spineEvent(event.data.name);
@@ -175,7 +167,69 @@ class PixiService {
         }
     }
 
+    private onAnimationTimeScaleChanged(timeScale: number): void {
+        if (this.spine) {
+            this.spine.state.timeScale = timeScale;
+        }
+    }
+
+    private onAnimationLoopChanged(loop: boolean): void {
+        const currentTrack = this.spine?.state.tracks[0];
+        if (!currentTrack || !this.spine) return;
+
+        if (loop) {
+            this.sequenceActive = false;
+            currentTrack.loop = true;
+            return;
+        }
+
+        // Keep the current animation running, then continue through all
+        // animations in skeleton order and wrap back to the first one.
+        currentTrack.loop = false;
+        // The shared Spine interface omits `animation`, although the 3.7,
+        // 3.8 and 4.x runtime TrackEntry implementations expose it.
+        const currentAnimationName = (currentTrack as typeof currentTrack & {
+            animation?: { name: string }
+        }).animation?.name;
+        this.sequenceIndex = this.getAnimationNames().indexOf(currentAnimationName ?? "");
+        if (this.sequenceIndex < 0) this.sequenceIndex = 0;
+        this.sequenceActive = true;
+        this.addSequenceListener();
+    }
+
+    private getAnimationNames(): string[] {
+        return this.spine?.spineData.animations.map(animation => animation.name) ?? [];
+    }
+
+    private addSequenceListener(): void {
+        if (!this.spine) return;
+        this.spine.state.clearListeners();
+        this.spine.state.addListener({
+            event: (_, event) => {
+                events.dispatchers.spineEvent(event.data.name);
+            },
+            complete: () => {
+                if (!this.sequenceActive || !this.spine) return;
+                const animations = this.getAnimationNames();
+                if (animations.length === 0) return;
+                this.sequenceIndex = (this.sequenceIndex + 1) % animations.length;
+                this.spine.state.setAnimation(0, animations[this.sequenceIndex], false);
+            }
+        });
+    }
+
+    private startAnimationSequence(startAnimation: string): void {
+        if (!this.spine) return;
+        const animations = this.getAnimationNames();
+        if (animations.length === 0) return;
+        this.sequenceIndex = Math.max(0, animations.indexOf(startAnimation));
+        this.sequenceActive = true;
+        this.spine.state.setAnimation(0, animations[this.sequenceIndex], false);
+        this.addSequenceListener();
+    }
+
     private onTimelinePlay(timeline: string[]): void {
+        this.sequenceActive = false;
         const animations = [...timeline];
         const firstAnimation = animations.shift();
 
@@ -198,13 +252,6 @@ class PixiService {
             }
         })
 
-    }
-
-    private onDebugOptionChange(debugOption: DebugOption): void {
-        if (this.spine) {
-            // @ts-ignore
-            this.spine[debugOption.option] = debugOption.value;
-        }
     }
 
     private onSetupPose(): void {
@@ -350,9 +397,7 @@ class PixiService {
         const spineJsonParser = new SpineParser(spineAtlasLoader);
         const spineData = spineJsonParser.readSkeletonData(rawSkeletonData);
         this.spine = new Spine(spineData);
-
-        // @ts-ignore
-        this.spine["drawDebug"] = true;
+        this.spine.state.timeScale = useSpineViewerStore.getState().timeScale;
 
         const wrapper = document.getElementById("canvas-wrapper");
 
@@ -361,6 +406,8 @@ class PixiService {
             antialias: true,
             width: window.innerWidth,
             height: window.innerHeight,
+            resolution: Math.min(window.devicePixelRatio || 1, MAX_RENDER_RESOLUTION),
+            autoDensity: true,
         });
         wrapper?.appendChild(this.app.view);
 
@@ -378,12 +425,20 @@ class PixiService {
 
         this.app.stage.addChild(this.background);
 
-        this.spine.x = this.app.renderer.width / 2;
-        this.spine.y = this.app.renderer.height / 2;
+        this.spine.x = this.app.screen.width / 2;
+        this.spine.y = this.app.screen.height / 2;
         // @ts-ignore
         this.app.stage.addChild(this.spine);
         this.appInitialized = true;
         this.addGlobalListeners();
+
+        const firstAnimation = this.spine.spineData.animations[0]?.name;
+        if (firstAnimation) {
+            this.onStartAnimation({
+                animation: firstAnimation,
+                loop: useSpineViewerStore.getState().loopAnimations
+            });
+        }
 
         events.dispatchers.spineCreated({
             animations: this.spine.spineData.animations.map(animation => animation.name),
@@ -511,7 +566,21 @@ class PixiService {
 
     private onResize() {
         if (this.app && this.app.view) {
+            const previousCenter = {
+                x: this.app.screen.width / 2,
+                y: this.app.screen.height / 2
+            };
             this.app.renderer.resize(window.innerWidth, window.innerHeight);
+
+            if (this.background) {
+                this.background.width = this.app.screen.width;
+                this.background.height = this.app.screen.height;
+            }
+
+            if (this.spine) {
+                this.spine.x += this.app.screen.width / 2 - previousCenter.x;
+                this.spine.y += this.app.screen.height / 2 - previousCenter.y;
+            }
         }
     }
 

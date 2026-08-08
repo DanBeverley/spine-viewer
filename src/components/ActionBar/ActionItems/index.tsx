@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { ActionMenuConfigItem } from "../../../config/actionMenuConfig";
 import { useSpineViewerStore } from "../../../store";
 import ActionItem from "../ActionItem";
+import events from "../../../events";
 
 interface ActionItemsProps {
     items: ActionMenuConfigItem[],
@@ -10,9 +11,18 @@ interface ActionItemsProps {
 
 const ActionItems: React.FC<ActionItemsProps> = ({ items, selectedItem }) => {
 
-    const setMenuItem = useSpineViewerStore(store => store.setMenuItem);
+    const [setMenuItem, setAssetLibraryOpen] = useSpineViewerStore(store => [
+        store.setMenuItem,
+        store.setAssetLibraryOpen
+    ]);
 
     const handleActionItemClick = (actionItemName: string) => {
+        if (actionItemName === "assets") {
+            events.dispatchers.destroyPixiApp();
+            setAssetLibraryOpen(true);
+            return;
+        }
+
         setMenuItem(actionItemName);
     }
 

@@ -7,6 +7,12 @@ export interface ActionMenuConfigItem {
 
 const actionMenuConfig: ActionMenuConfigItem[] = [
     {
+        icon: "/assets/svg/library.svg",
+        name: "assets",
+        label: "Saved assets",
+        visible: true
+    },
+    {
         icon: "/assets/svg/animations.svg",
         name: "animations",
         label: "Animations",
@@ -16,12 +22,6 @@ const actionMenuConfig: ActionMenuConfigItem[] = [
         icon: "/assets/svg/skins.svg",
         name: "skins",
         label: "Skins",
-        visible: true
-    },
-    {
-        icon: "/assets/svg/debug.svg",
-        name: "debug",
-        label: "Debug",
         visible: true
     },
     {
