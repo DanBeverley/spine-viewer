@@ -54,3 +54,11 @@ export interface TimelineEntry {
     id: string;
     animation: string;
 }
+
+export interface SavedSpineAsset {
+    id: string;
+    name: string;
+    createdAt: number;
+    updatedAt: number;
+    files: FileEntry[];
+}

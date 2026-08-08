@@ -5,3 +5,64 @@
     align-items: center;
     max-width: var(--content-width);
 }
+
+.spine-loader__upload-heading {
+    color: var(--text-color);
+    margin-top: 1rem;
+}
+
+.saved-assets {
+    width: min(90%, 700px);
+    color: var(--text-color);
+}
+
+.saved-assets h2 {
+    text-align: center;
+    margin-bottom: 0.75rem;
+}
+
+.saved-assets__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.saved-asset {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid var(--border-color);
+    background-color: rgba(0, 0, 0, 0.12);
+}
+
+.saved-asset__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.saved-asset__actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.saved-asset__actions button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid var(--accent-color);
+    color: var(--text-color);
+    background: transparent;
+    cursor: pointer;
+}
+
+.saved-asset__actions button:hover {
+    background-color: var(--accent-color);
+}
+
+.saved-asset__actions .saved-asset__delete {
+    border-color: #d9534f;
+}

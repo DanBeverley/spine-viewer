@@ -2,7 +2,7 @@
 
 .action-bar {
     position: absolute;
-    left: 0;
+    left: env(safe-area-inset-left, 0px);
     top: var(--header-height);
     bottom: 0;
     background-color: transparent;
@@ -12,6 +12,7 @@
     flex-direction: column;
     justify-content: space-between;
     pointer-events: none;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .action-bar__action-item {

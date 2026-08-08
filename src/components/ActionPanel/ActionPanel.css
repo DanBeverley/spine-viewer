@@ -3,7 +3,7 @@
     position: absolute;
     top: var(--header-height);
     bottom: 0;
-    left: 0;
+    left: env(safe-area-inset-left, 0px);
     background-color: var(--primary-color);
     z-index: 10;
     transform: translateX(-300px);

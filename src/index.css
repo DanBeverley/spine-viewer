@@ -65,10 +65,6 @@ body,
 }
 
 @supports (padding-left: env(safe-area-inset-left)) {
-  .action-bar {
-    padding-left: env(safe-area-inset-left);
-  }
-
   .header__content-wrapper {
     padding-left: max(20px, env(safe-area-inset-left));
     padding-right: max(20px, env(safe-area-inset-right));
