@@ -110,6 +110,10 @@ const toPublicAsset = (row: StoredAssetRow, files: FileEntry[]): SavedSpineAsset
 });
 
 class AssetLibraryService {
+    public static getAssetKey(files: FileEntry[]): string {
+        return getAssetKey(files);
+    }
+
     private static async readLegacyLocalAssets(): Promise<LegacyLocalAsset[]> {
         if (typeof indexedDB === "undefined") return [];
 
@@ -184,6 +188,7 @@ class AssetLibraryService {
                 // fresh upload, even when an older record stored a folder
                 // relative path.
                 path: file.name,
+                sourcePath: `${row.asset_key}/${file.name}`,
                 data: await blobToFileEntryData(file, data)
             };
         }));
@@ -208,7 +213,7 @@ class AssetLibraryService {
 
     public static async save(files: FileEntry[], ownerId: string, nameOverride?: string): Promise<SavedSpineAsset> {
         const client = requireSupabase();
-        const assetKey = getAssetKey(files);
+        const assetKey = AssetLibraryService.getAssetKey(files);
         const existing = await this.getRow(ownerId, assetKey);
         const metadata: StoredFileMetadata[] = [];
 

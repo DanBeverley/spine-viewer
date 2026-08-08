@@ -32,6 +32,12 @@ const SavedAssetsDropdown = ({ accountId, onClose }: SavedAssetsDropdownProps) =
     }, [accountId]);
 
     const openAsset = async (asset: SavedSpineAsset) => {
+        const currentFiles = useSpineViewerStore.getState().loadedFiles;
+        if (currentFiles.length > 0 && AssetLibraryService.getAssetKey(currentFiles) === asset.id) {
+            onClose();
+            return;
+        }
+
         setOpeningId(asset.id);
         setFilesLoading(true);
         try {
