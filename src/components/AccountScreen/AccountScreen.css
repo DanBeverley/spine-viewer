@@ -1,8 +1,13 @@
 .account-screen {
-    min-height: calc(100% - var(--header-height));
+    position: fixed;
+    inset: 0;
+    z-index: 100;
     display: grid;
     place-items: center;
     padding: 1rem;
+    background: rgba(0, 0, 0, 0.42);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 .account-screen__form {
@@ -16,8 +21,7 @@
     box-shadow: var(--box-shadow);
 }
 
-.account-screen__form h1,
-.account-screen__form p {
+.account-screen__form h1 {
     text-align: center;
 }
 

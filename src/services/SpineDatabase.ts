@@ -9,6 +9,7 @@ export interface StoredAccount {
     username: string;
     salt: string;
     passwordHash: string;
+    algorithm?: "pbkdf2" | "local-fallback";
     createdAt: number;
 }
 

@@ -24,9 +24,30 @@ const decode = (value: string): Uint8Array => {
     return Uint8Array.from(binary, character => character.charCodeAt(0));
 };
 
-const hashPassword = async (password: string, salt: Uint8Array): Promise<string> => {
+const fallbackHash = (password: string, salt: Uint8Array): string => {
+    const input = `${encode(salt)}:${password}`;
+    let first = 2166136261;
+    let second = 2246822519;
+
+    for (let round = 0; round < 10_000; round += 1) {
+        for (let index = 0; index < input.length; index += 1) {
+            const code = input.charCodeAt(index) + round;
+            first = Math.imul(first ^ code, 16777619) >>> 0;
+            second = Math.imul(second ^ (code + first), 2246822519) >>> 0;
+        }
+    }
+
+    return `${first.toString(16)}${second.toString(16)}`;
+};
+
+const hashPassword = async (
+    password: string,
+    salt: Uint8Array,
+    algorithm: "pbkdf2" | "local-fallback"
+): Promise<string> => {
+    if (algorithm === "local-fallback") return fallbackHash(password, salt);
     if (!globalThis.crypto?.subtle) {
-        throw new Error("Secure password storage is unavailable in this browser.");
+        throw new Error("This account requires an HTTPS connection for password verification.");
     }
 
     const key = await globalThis.crypto.subtle.importKey(
@@ -99,11 +120,13 @@ class AccountService {
         if (await this.getStoredAccount(id)) throw new Error("That username is already registered on this device.");
 
         const salt = globalThis.crypto.getRandomValues(new Uint8Array(16));
+        const algorithm = globalThis.crypto.subtle ? "pbkdf2" : "local-fallback";
         const account: StoredAccount = {
             id,
             username: displayName,
             salt: encode(salt),
-            passwordHash: await hashPassword(password, salt),
+            passwordHash: await hashPassword(password, salt, algorithm),
+            algorithm,
             createdAt: Date.now()
         };
         const database = await openSpineDatabase();
@@ -122,7 +145,7 @@ class AccountService {
         const account = await this.getStoredAccount(normalizeUsername(username));
         if (!account) throw new Error("Invalid username or password.");
 
-        const passwordHash = await hashPassword(password, decode(account.salt));
+        const passwordHash = await hashPassword(password, decode(account.salt), account.algorithm ?? "pbkdf2");
         if (passwordHash !== account.passwordHash) throw new Error("Invalid username or password.");
 
         await this.setSession(account.id);
