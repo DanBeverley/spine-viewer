@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import events from "../../events";
 import { errorToast } from "../../config/toastsConfig";
@@ -38,6 +38,7 @@ const SpineLoader = ({ accountId, hasCurrentAnimation }: SpineLoaderProps) => {
     const [assetName, setAssetName] = useState("");
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editingName, setEditingName] = useState("");
+    const refreshSequence = useRef(0);
 
     const { suspendedFiles, setLoadedFiles, setSuspendedFiles, setFilesLoading, setAssetLibraryOpen } = useSpineViewerStore(state => ({
         suspendedFiles: state.suspendedFiles,
@@ -47,17 +48,22 @@ const SpineLoader = ({ accountId, hasCurrentAnimation }: SpineLoaderProps) => {
         setAssetLibraryOpen: state.setAssetLibraryOpen
     }));
 
-    const refreshSavedAssets = () => {
-        AssetLibraryService.list(accountId)
-            .then(setSavedAssets)
-            .catch(error => {
+    const refreshSavedAssets = async () => {
+        const sequence = ++refreshSequence.current;
+        try {
+            const assets = await AssetLibraryService.list(accountId);
+            // A slower, older request must not replace a newer library result.
+            if (sequence === refreshSequence.current) setSavedAssets(assets);
+        } catch (error) {
+            if (sequence === refreshSequence.current) {
                 toast(`Saved asset library unavailable: ${error instanceof Error ? error.message : "unknown error"}`, errorToast);
-            });
+            }
+        }
     };
 
     useEffect(() => {
         AssetLibraryService.migrateLocalAssets(accountId)
-            .then(refreshSavedAssets)
+            .then(() => refreshSavedAssets())
             .catch(error => {
                 toast(`Local asset migration unavailable: ${error instanceof Error ? error.message : "unknown error"}`, errorToast);
             });
@@ -77,7 +83,7 @@ const SpineLoader = ({ accountId, hasCurrentAnimation }: SpineLoaderProps) => {
         setAssetName("");
 
         AssetLibraryService.save(files, accountId, requestedName)
-            .then(refreshSavedAssets)
+            .then(() => refreshSavedAssets())
             .catch(error => {
                 toast(`Could not save this Spine asset: ${error instanceof Error ? error.message : "unknown error"}`, errorToast);
             });

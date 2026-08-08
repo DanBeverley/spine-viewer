@@ -16,7 +16,10 @@ import { AnimationPlayData, FilesLoadedData, SpineMixin } from "../interfaces";
 import { hexStringToNumber } from "../utils/numberUtils";
 import { useSpineViewerStore } from "../store";
 
-const MAX_RENDER_RESOLUTION = 2;
+// Render at Retina/high-DPI density without changing logical coordinates or
+// re-encoding the user's source textures. Three is the native DPR of many
+// iPhones, while still preventing unbounded framebuffer growth on desktop.
+const MAX_RENDER_RESOLUTION = 3;
 
 interface PixiDragEvent {
     data: {
@@ -66,6 +69,8 @@ class PixiService {
     private initialPointerPosition: Point | null;
     private initialSpinePosition: Point | null;
     private handlerRemovers: HandlerRemover<PixiServiceRemoveHandlers>[];
+    private sequenceActive: boolean;
+    private sequenceIndex: number;
 
     constructor() {
         this.app = null;
@@ -76,6 +81,8 @@ class PixiService {
         this.initialPointerPosition = null;
         this.initialSpinePosition = null;
         this.handlerRemovers = [];
+        this.sequenceActive = false;
+        this.sequenceIndex = 0;
     }
 
     public init(): void {
@@ -130,10 +137,15 @@ class PixiService {
     }
 
     private onStartAnimation(animationData: AnimationPlayData): void {
+        this.sequenceActive = false;
         this.spine?.state.clearTrack(0);
         this.spine?.state.clearListeners();
         this.spine?.skeleton.setToSetupPose();
-        this.spine?.state.setAnimation(0, animationData.animation, animationData.loop);
+        if (!animationData.loop) {
+            this.startAnimationSequence(animationData.animation);
+            return;
+        }
+        this.spine?.state.setAnimation(0, animationData.animation, true);
         this.spine?.state.addListener({
             event: (_, event) => {
                 events.dispatchers.spineEvent(event.data.name);
@@ -163,12 +175,61 @@ class PixiService {
 
     private onAnimationLoopChanged(loop: boolean): void {
         const currentTrack = this.spine?.state.tracks[0];
-        if (currentTrack) {
-            currentTrack.loop = loop;
+        if (!currentTrack || !this.spine) return;
+
+        if (loop) {
+            this.sequenceActive = false;
+            currentTrack.loop = true;
+            return;
         }
+
+        // Keep the current animation running, then continue through all
+        // animations in skeleton order and wrap back to the first one.
+        currentTrack.loop = false;
+        // The shared Spine interface omits `animation`, although the 3.7,
+        // 3.8 and 4.x runtime TrackEntry implementations expose it.
+        const currentAnimationName = (currentTrack as typeof currentTrack & {
+            animation?: { name: string }
+        }).animation?.name;
+        this.sequenceIndex = this.getAnimationNames().indexOf(currentAnimationName ?? "");
+        if (this.sequenceIndex < 0) this.sequenceIndex = 0;
+        this.sequenceActive = true;
+        this.addSequenceListener();
+    }
+
+    private getAnimationNames(): string[] {
+        return this.spine?.spineData.animations.map(animation => animation.name) ?? [];
+    }
+
+    private addSequenceListener(): void {
+        if (!this.spine) return;
+        this.spine.state.clearListeners();
+        this.spine.state.addListener({
+            event: (_, event) => {
+                events.dispatchers.spineEvent(event.data.name);
+            },
+            complete: () => {
+                if (!this.sequenceActive || !this.spine) return;
+                const animations = this.getAnimationNames();
+                if (animations.length === 0) return;
+                this.sequenceIndex = (this.sequenceIndex + 1) % animations.length;
+                this.spine.state.setAnimation(0, animations[this.sequenceIndex], false);
+            }
+        });
+    }
+
+    private startAnimationSequence(startAnimation: string): void {
+        if (!this.spine) return;
+        const animations = this.getAnimationNames();
+        if (animations.length === 0) return;
+        this.sequenceIndex = Math.max(0, animations.indexOf(startAnimation));
+        this.sequenceActive = true;
+        this.spine.state.setAnimation(0, animations[this.sequenceIndex], false);
+        this.addSequenceListener();
     }
 
     private onTimelinePlay(timeline: string[]): void {
+        this.sequenceActive = false;
         const animations = [...timeline];
         const firstAnimation = animations.shift();
 
@@ -370,6 +431,14 @@ class PixiService {
         this.app.stage.addChild(this.spine);
         this.appInitialized = true;
         this.addGlobalListeners();
+
+        const firstAnimation = this.spine.spineData.animations[0]?.name;
+        if (firstAnimation) {
+            this.onStartAnimation({
+                animation: firstAnimation,
+                loop: useSpineViewerStore.getState().loopAnimations
+            });
+        }
 
         events.dispatchers.spineCreated({
             animations: this.spine.spineData.animations.map(animation => animation.name),

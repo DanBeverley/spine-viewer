@@ -47,7 +47,7 @@ const initialState: SpineViewerStore = {
     mixins: [],
     animations: [],
     skins: [],
-    loopAnimations: false,
+    loopAnimations: true,
     timeScale: 1,
     assetLibraryOpen: false,
 }

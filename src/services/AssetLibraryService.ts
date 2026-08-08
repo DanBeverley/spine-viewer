@@ -63,8 +63,22 @@ const fileEntryToBlob = async (file: FileEntry): Promise<Blob> => {
     throw new Error(`File data is missing for ${file.name}.`);
 };
 
+const blobToDataUrl = (blob: Blob): Promise<string> => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+        if (typeof reader.result === "string") resolve(reader.result);
+        else reject(new Error("Unable to reconstruct saved image data."));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("Unable to read saved image data."));
+    reader.readAsDataURL(blob);
+});
+
 const blobToFileEntryData = async (file: StoredFileMetadata, blob: Blob): Promise<string | ArrayBuffer> => {
-    if (["json", "atlas"].includes(file.type.toLowerCase())) return blob.text();
+    const type = file.type.toLowerCase();
+    if (["json", "atlas"].includes(type)) return blob.text();
+    // Pixi's existing upload path supplies images as data URLs. Recreate the
+    // same shape when downloading from Storage; SKEL remains binary.
+    if (["png", "jpg", "webp"].includes(type)) return blobToDataUrl(blob);
     return blob.arrayBuffer();
 };
 
