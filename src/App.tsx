@@ -15,6 +15,27 @@ import AccountScreen from './components/AccountScreen';
 import AccountService from './services/AccountService';
 import { ViewerAccount } from './interfaces';
 
+const CHUNK_RECOVERY_KEY = "spine-viewer-chunk-recovery";
+
+const recoverFromStaleChunk = async (): Promise<boolean> => {
+  if (sessionStorage.getItem(CHUNK_RECOVERY_KEY)) {
+    sessionStorage.removeItem(CHUNK_RECOVERY_KEY);
+    return false;
+  }
+
+  sessionStorage.setItem(CHUNK_RECOVERY_KEY, "1");
+  if ("serviceWorker" in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map(registration => registration.unregister()));
+  }
+  if ("caches" in window) {
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
+  }
+  window.location.reload();
+  return true;
+};
+
 function App() {
   const [account, setAccount] = useState<ViewerAccount | null | undefined>(undefined);
 
@@ -61,7 +82,18 @@ function App() {
         document.getElementById("canvas-wrapper")!.style.display = "block";
 
       }).catch(error => {
-        toast(`Unable to initialize Spine renderer: ${error instanceof Error ? error.message : "unknown error"}`, { type: "error" });
+        const message = error instanceof Error ? error.message : String(error);
+        if (/module script|dynamically imported module|failed to fetch/i.test(message)) {
+          recoverFromStaleChunk().then(reloaded => {
+            if (!reloaded) {
+              toast(`Unable to initialize Spine renderer: ${message}`, { type: "error" });
+            }
+          }).catch(() => {
+            toast(`Unable to initialize Spine renderer: ${message}`, { type: "error" });
+          });
+          return;
+        }
+        toast(`Unable to initialize Spine renderer: ${message}`, { type: "error" });
       });
     }
 
