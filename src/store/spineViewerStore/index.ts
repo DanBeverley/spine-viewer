@@ -16,6 +16,7 @@ export interface SpineViewerStore {
     mixins: SpineMixin[];
     loopAnimations: boolean;
     timeScale: number;
+    assetLibraryOpen: boolean;
 }
 
 export interface SpineViewerActions {
@@ -29,6 +30,7 @@ export interface SpineViewerActions {
     setLoadedFiles: (loadedFiles: FileEntry[]) => void;
     setLoopAnimations: (loopAnimations: boolean) => void;
     setTimeScale: (timeScale: number) => void;
+    setAssetLibraryOpen: (assetLibraryOpen: boolean) => void;
     reset: () => void;
     initAsyncData: () => void;
 }
@@ -44,6 +46,7 @@ const initialState: SpineViewerStore = {
     skins: [],
     loopAnimations: false,
     timeScale: 1,
+    assetLibraryOpen: false,
 }
 
 export const useSpineViewerStore = create<SpineViewerStore & SpineViewerActions>()(
@@ -71,6 +74,9 @@ export const useSpineViewerStore = create<SpineViewerStore & SpineViewerActions>
         },
         setTimeScale: (timeScale: number) => {
             set(_ => ({ timeScale }))
+        },
+        setAssetLibraryOpen: (assetLibraryOpen: boolean) => {
+            set(_ => ({ assetLibraryOpen }))
         },
         setFilesLoading: (filesLoading: boolean) => {
             set(_ => ({ filesLoading }))

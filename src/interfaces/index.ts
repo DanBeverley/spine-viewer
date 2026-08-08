@@ -62,3 +62,8 @@ export interface SavedSpineAsset {
     updatedAt: number;
     files: FileEntry[];
 }
+
+export interface ViewerAccount {
+    id: string;
+    username: string;
+}

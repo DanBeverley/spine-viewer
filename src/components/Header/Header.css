@@ -13,11 +13,27 @@
     max-width: var(--content-width);
     padding: 0 20px;
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     height: var(--header-height);
     pointer-events: none;
 }
 
 .header__content-wrapper > * {
     pointer-events: auto;
+}
+
+.header__account {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: var(--text-color);
+}
+
+.header__account button {
+    min-height: 36px;
+    padding: 0.35rem 0.6rem;
+    border: 1px solid var(--accent-color);
+    color: var(--text-color);
+    background: transparent;
+    cursor: pointer;
 }

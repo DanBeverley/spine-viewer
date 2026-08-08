@@ -46,6 +46,7 @@ enum PixiServiceRemoveHandlers {
     ON_SET_CANVAS_BACKGROUND,
     ON_TIMELINE_PLAY,
     ON_ANIMATION_TIME_SCALE_CHANGED,
+    ON_ANIMATION_LOOP_CHANGED,
     ON_SETUP_POSE,
     ON_DESTROY_PIXI_APP,
     ON_FILES_LOADED,
@@ -103,6 +104,10 @@ class PixiService {
             removeHandler: events.handlers.onAnimationTimeScaleChanged(this.onAnimationTimeScaleChanged.bind(this))
         });
         this.handlerRemovers.push({
+            name: PixiServiceRemoveHandlers.ON_ANIMATION_LOOP_CHANGED,
+            removeHandler: events.handlers.onAnimationLoopChanged(this.onAnimationLoopChanged.bind(this))
+        });
+        this.handlerRemovers.push({
             name: PixiServiceRemoveHandlers.ON_SETUP_POSE,
             removeHandler: events.handlers.onSetupPose(this.onSetupPose.bind(this))
         });
@@ -153,6 +158,13 @@ class PixiService {
     private onAnimationTimeScaleChanged(timeScale: number): void {
         if (this.spine) {
             this.spine.state.timeScale = timeScale;
+        }
+    }
+
+    private onAnimationLoopChanged(loop: boolean): void {
+        const currentTrack = this.spine?.state.tracks[0];
+        if (currentTrack) {
+            currentTrack.loop = loop;
         }
     }
 

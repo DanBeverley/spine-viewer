@@ -18,8 +18,10 @@ import { onStartAnimation } from "./handlers/onStartAnimation";
 import { onTimelinePlay } from "./handlers/onTimelinePlay";
 import { spineEvent } from "./dispatchers/spineEvent";
 import { animationTimeScaleChanged } from "./dispatchers/animationTimeScaleChanged";
+import { animationLoopChanged } from "./dispatchers/animationLoopChanged";
 import { onSpineEvent } from "./handlers/onSpineEvent";
 import { onAnimationTimeScaleChanged } from "./handlers/onAnimationTimeScaleChanged";
+import { onAnimationLoopChanged } from "./handlers/onAnimationLoopChanged";
 import { remove } from "./remove";
 
 const dispatchers = {
@@ -33,7 +35,8 @@ const dispatchers = {
     startAnimation,
     timelinePlay,
     spineEvent,
-    animationTimeScaleChanged
+    animationTimeScaleChanged,
+    animationLoopChanged
 };
 
 const handlers = {
@@ -47,7 +50,8 @@ const handlers = {
     onStartAnimation,
     onTimelinePlay,
     onSpineEvent,
-    onAnimationTimeScaleChanged
+    onAnimationTimeScaleChanged,
+    onAnimationLoopChanged
 };
 
 export default {

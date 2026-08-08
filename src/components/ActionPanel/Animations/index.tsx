@@ -18,6 +18,11 @@ const Animations = () => {
         }
     });
 
+    const handleLoopChange = (loop: boolean) => {
+        setLoopAnimations(loop);
+        events.dispatchers.animationLoopChanged(loop);
+    };
+
     const handleTimeScaleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const nextTimeScale = Number(event.target.value);
         setTimeScale(nextTimeScale);
@@ -37,7 +42,7 @@ const Animations = () => {
         >
             <>
                 <PanelCheckbox
-                    onChange={e => setLoopAnimations(e.target.checked)}
+                    onChange={e => handleLoopChange(e.target.checked)}
                     checked={loopAnimations}
                     label="Play looped animations"
                 />

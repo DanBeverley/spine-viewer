@@ -1,148 +1,148 @@
 import { FileEntry, SavedSpineAsset } from "../interfaces";
-
-const DATABASE_NAME = "spine-viewer";
-const DATABASE_VERSION = 1;
-const ASSET_STORE_NAME = "assetSets";
+import {
+    ASSET_STORE_NAME,
+    openSpineDatabase,
+    StoredAsset
+} from "./SpineDatabase";
 
 const getAssetName = (files: FileEntry[]): string => {
     const primaryFile = files.find(file => file.type.toLowerCase() === "json")
         ?? files.find(file => file.type.toLowerCase() === "skel");
 
-    if (!primaryFile) {
-        throw new Error("A Spine asset must include a JSON or SKEL file.");
-    }
+    if (!primaryFile) throw new Error("A Spine asset must include a JSON or SKEL file.");
 
     const filename = primaryFile.name.replace(/\\/g, "/").split("/").pop() ?? primaryFile.name;
     return filename.replace(/\.(json|skel)$/i, "") || "Untitled Spine";
 };
 
-const getAssetId = (name: string): string => name.trim().toLocaleLowerCase();
+const getAssetId = (files: FileEntry[]): string => getAssetName(files).trim().toLocaleLowerCase();
+const getStorageKey = (ownerId: string, assetId: string) => `${ownerId}::${assetId}`;
+
+const toPublicAsset = (asset: StoredAsset): SavedSpineAsset => ({
+    id: asset.assetId,
+    name: asset.name,
+    createdAt: asset.createdAt,
+    updatedAt: asset.updatedAt,
+    files: asset.files
+});
 
 class AssetLibraryService {
-    private static openDatabase(): Promise<IDBDatabase> {
-        if (typeof indexedDB === "undefined") {
-            return Promise.reject(new Error("IndexedDB is not available in this browser."));
-        }
+    private static async getStored(ownerId: string, assetId: string): Promise<StoredAsset | undefined> {
+        const database = await openSpineDatabase();
 
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
-
-            request.onupgradeneeded = () => {
-                const database = request.result;
-                if (!database.objectStoreNames.contains(ASSET_STORE_NAME)) {
-                    database.createObjectStore(ASSET_STORE_NAME, { keyPath: "id" });
-                }
-            };
-
+            const transaction = database.transaction(ASSET_STORE_NAME, "readonly");
+            const request = transaction.objectStore(ASSET_STORE_NAME).get(getStorageKey(ownerId, assetId));
             request.onsuccess = () => {
-                const database = request.result;
-                database.onversionchange = () => database.close();
-                resolve(database);
+                database.close();
+                resolve(request.result as StoredAsset | undefined);
             };
-
-            request.onerror = () => {
-                reject(request.error ?? new Error("Unable to open the saved Spine asset library."));
+            transaction.onerror = () => {
+                database.close();
+                reject(transaction.error ?? new Error("Unable to read the saved asset."));
             };
         });
     }
 
-    public static async list(): Promise<SavedSpineAsset[]> {
-        const database = await this.openDatabase();
+    public static async list(ownerId: string): Promise<SavedSpineAsset[]> {
+        const database = await openSpineDatabase();
 
         return new Promise((resolve, reject) => {
             const transaction = database.transaction(ASSET_STORE_NAME, "readonly");
             const request = transaction.objectStore(ASSET_STORE_NAME).getAll();
-
             request.onsuccess = () => {
-                const assets = (request.result as SavedSpineAsset[])
-                    .sort((left, right) => right.updatedAt - left.updatedAt);
+                const assets = (request.result as StoredAsset[])
+                    .filter(asset => asset.ownerId === ownerId)
+                    .sort((left, right) => right.updatedAt - left.updatedAt)
+                    .map(toPublicAsset);
                 database.close();
                 resolve(assets);
             };
-
             transaction.onerror = () => {
                 database.close();
-                reject(transaction.error ?? new Error("Unable to read the saved Spine asset library."));
+                reject(transaction.error ?? new Error("Unable to read the saved asset library."));
             };
         });
     }
 
-    public static async get(id: string): Promise<SavedSpineAsset | undefined> {
-        const database = await this.openDatabase();
-
-        return new Promise((resolve, reject) => {
-            const transaction = database.transaction(ASSET_STORE_NAME, "readonly");
-            const request = transaction.objectStore(ASSET_STORE_NAME).get(id);
-
-            request.onsuccess = () => {
-                database.close();
-                resolve(request.result as SavedSpineAsset | undefined);
-            };
-
-            transaction.onerror = () => {
-                database.close();
-                reject(transaction.error ?? new Error("Unable to open the saved Spine asset."));
-            };
-        });
+    public static async get(ownerId: string, assetId: string): Promise<SavedSpineAsset | undefined> {
+        const asset = await this.getStored(ownerId, assetId);
+        return asset ? toPublicAsset(asset) : undefined;
     }
 
-    public static async save(files: FileEntry[]): Promise<SavedSpineAsset> {
-        const name = getAssetName(files);
-        const id = getAssetId(name);
-        const existing = await this.get(id);
-
+    public static async save(files: FileEntry[], ownerId: string, nameOverride?: string): Promise<SavedSpineAsset> {
+        const assetId = getAssetId(files);
+        const existing = await this.getStored(ownerId, assetId);
         const now = Date.now();
-        const asset: SavedSpineAsset = {
-            id,
-            name,
+        const asset: StoredAsset = {
+            id: getStorageKey(ownerId, assetId),
+            assetId,
+            ownerId,
+            name: nameOverride?.trim() || getAssetName(files),
             createdAt: existing?.createdAt ?? now,
             updatedAt: now,
             files: files.map(file => ({ ...file }))
         };
-
-        const writeDatabase = await this.openDatabase();
-        return new Promise((resolve, reject) => {
-            const transaction = writeDatabase.transaction(ASSET_STORE_NAME, "readwrite");
-            transaction.objectStore(ASSET_STORE_NAME).put(asset);
-
-            transaction.oncomplete = () => {
-                writeDatabase.close();
-                resolve(asset);
-            };
-
-            transaction.onerror = () => {
-                writeDatabase.close();
-                reject(transaction.error ?? new Error("Unable to save this Spine asset."));
-            };
-
-            transaction.onabort = () => {
-                writeDatabase.close();
-                reject(transaction.error ?? new Error("Unable to save this Spine asset."));
-            };
-        });
-    }
-
-    public static async delete(id: string): Promise<void> {
-        const database = await this.openDatabase();
+        const database = await openSpineDatabase();
 
         return new Promise((resolve, reject) => {
             const transaction = database.transaction(ASSET_STORE_NAME, "readwrite");
-            transaction.objectStore(ASSET_STORE_NAME).delete(id);
+            transaction.objectStore(ASSET_STORE_NAME).put(asset);
+            transaction.oncomplete = () => { database.close(); resolve(toPublicAsset(asset)); };
+            transaction.onerror = () => { database.close(); reject(transaction.error ?? new Error("Unable to save this Spine asset.")); };
+            transaction.onabort = () => { database.close(); reject(transaction.error ?? new Error("Unable to save this Spine asset.")); };
+        });
+    }
 
-            transaction.oncomplete = () => {
-                database.close();
-                resolve();
-            };
+    public static async rename(ownerId: string, assetId: string, name: string): Promise<void> {
+        const asset = await this.getStored(ownerId, assetId);
+        if (!asset) throw new Error("Saved asset not found.");
+        asset.name = name.trim();
+        asset.updatedAt = Date.now();
+        const database = await openSpineDatabase();
 
-            transaction.onerror = () => {
-                database.close();
-                reject(transaction.error ?? new Error("Unable to delete this saved Spine asset."));
-            };
+        return new Promise((resolve, reject) => {
+            const transaction = database.transaction(ASSET_STORE_NAME, "readwrite");
+            transaction.objectStore(ASSET_STORE_NAME).put(asset);
+            transaction.oncomplete = () => { database.close(); resolve(); };
+            transaction.onerror = () => { database.close(); reject(transaction.error ?? new Error("Unable to rename saved asset.")); };
+        });
+    }
 
-            transaction.onabort = () => {
-                database.close();
-                reject(transaction.error ?? new Error("Unable to delete this saved Spine asset."));
+    public static async delete(ownerId: string, assetId: string): Promise<void> {
+        const database = await openSpineDatabase();
+
+        return new Promise((resolve, reject) => {
+            const transaction = database.transaction(ASSET_STORE_NAME, "readwrite");
+            transaction.objectStore(ASSET_STORE_NAME).delete(getStorageKey(ownerId, assetId));
+            transaction.oncomplete = () => { database.close(); resolve(); };
+            transaction.onerror = () => { database.close(); reject(transaction.error ?? new Error("Unable to delete this saved Spine asset.")); };
+        });
+    }
+
+    public static async claimLegacyAssets(ownerId: string): Promise<void> {
+        const database = await openSpineDatabase();
+
+        return new Promise((resolve, reject) => {
+            const transaction = database.transaction(ASSET_STORE_NAME, "readwrite");
+            const store = transaction.objectStore(ASSET_STORE_NAME);
+            const request = store.getAll();
+            request.onsuccess = () => {
+                (request.result as Array<StoredAsset & { ownerId?: string }>).forEach(asset => {
+                    if (asset.ownerId) return;
+                    const assetId = asset.assetId ?? asset.id;
+                    store.put({
+                        ...asset,
+                        id: getStorageKey(ownerId, assetId),
+                        assetId,
+                        ownerId,
+                        updatedAt: asset.updatedAt ?? Date.now()
+                    });
+                    store.delete(asset.id);
+                });
             };
+            transaction.oncomplete = () => { database.close(); resolve(); };
+            transaction.onerror = () => { database.close(); reject(transaction.error ?? new Error("Unable to migrate saved assets.")); };
         });
     }
 }
