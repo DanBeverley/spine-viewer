@@ -5,9 +5,9 @@
 
 .animation-button {
     color: var(--text-color);
-    background-color: var(--accent-color);
+    background-color: transparent;
     width: 80%;
-    border: none;
+    border: 1px solid rgba(128, 128, 128, 0.35);
     font-size: 16px;
 }
 
@@ -17,12 +17,15 @@
 }
 
 .animation-copy {
-    background-color: rgb(228,234,240);
+    background-color: transparent;
+    border: 1px solid rgba(128, 128, 128, 0.35);
+    border-left: 0;
     display: inline-block;
-    height: 18px;
+    min-height: 44px;
     /* width: 18%; */
     flex-grow: 1;
     text-align: center;
+    cursor: pointer;
 }
 
 .animation-copy:hover {

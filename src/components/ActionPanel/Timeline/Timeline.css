@@ -9,10 +9,11 @@
 .timeline-add__button,
 .timeline-play__button {
     margin-top: 10px;
-    border: none;
+    border: 1px solid rgba(128, 128, 128, 0.35);
     padding: 10px 0;
-    background-color: var(--accent-color);
+    background-color: transparent;
     color: var(--text-color);
+    cursor: pointer;
 }
 
 .timeline-add__button:hover,

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useSpineViewerStore } from "../../store";
 import events from "../../events";
 import ActionPanel from "../ActionPanel";
@@ -9,9 +10,12 @@ import Timeline from "../ActionPanel/Timeline";
 import "./ActionBar.css";
 import ActionItems from "./ActionItems";
 import SettingsButton from "./SettingsButton";
+import SavedAssetsDropdown from "./SavedAssetsDropdown";
 
 
-interface ActionBarProps { }
+interface ActionBarProps {
+    accountId: string;
+}
 
 const getCurrentPanel = (key: string): JSX.Element | null => {
 
@@ -36,7 +40,8 @@ const getCurrentPanel = (key: string): JSX.Element | null => {
     }
 }
 
-const ActionBar: React.FC<ActionBarProps> = () => {
+const ActionBar: React.FC<ActionBarProps> = ({ accountId }) => {
+    const [savedAssetsOpen, setSavedAssetsOpen] = useState(false);
     const [selectedActionMenuItem, actionMenuItems, setMenuItem, setAssetLibraryOpen] = useSpineViewerStore(store => [
         store.selectedActionMenuItem,
         store.actionMenuItems,
@@ -54,11 +59,22 @@ const ActionBar: React.FC<ActionBarProps> = () => {
         setMenuItem("settings");
     }
 
+    const toggleSavedAssets = () => {
+        if (selectedActionMenuItem) setMenuItem(selectedActionMenuItem.name);
+        setSavedAssetsOpen(open => !open);
+    };
+
 
     return (
         <>
             <div className="action-bar">
-                <ActionItems items={actionMenuItems} selectedItem={selectedActionMenuItem} />
+                <ActionItems
+                    items={actionMenuItems}
+                    selectedItem={selectedActionMenuItem}
+                    assetsOpen={savedAssetsOpen}
+                    onAssetsToggle={toggleSavedAssets}
+                    onPanelClick={() => setSavedAssetsOpen(false)}
+                />
                 <div className="action-bar__bottom-actions">
                     <button
                         type="button"
@@ -78,6 +94,7 @@ const ActionBar: React.FC<ActionBarProps> = () => {
                     <SettingsButton onClick={handleSettingsClick} />
                 </div>
             </div>
+            {savedAssetsOpen && <SavedAssetsDropdown accountId={accountId} onClose={() => setSavedAssetsOpen(false)} />}
             <ActionPanel open={selectedActionMenuItem !== null}>
                 {selectedActionMenuItem && getCurrentPanel(selectedActionMenuItem.name)}
             </ActionPanel>
