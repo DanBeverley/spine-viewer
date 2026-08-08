@@ -9,6 +9,8 @@
     width: 80%;
     border: 1px solid rgba(128, 128, 128, 0.35);
     font-size: 16px;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
 }
 
 .animation-button:hover {

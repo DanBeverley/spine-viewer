@@ -18,6 +18,7 @@ export interface SpineViewerStore {
     loopAnimations: boolean;
     timeScale: number;
     assetLibraryOpen: boolean;
+    panelScrollPositions: Record<string, number>;
 }
 
 export interface SpineViewerActions {
@@ -33,6 +34,7 @@ export interface SpineViewerActions {
     setLoopAnimations: (loopAnimations: boolean) => void;
     setTimeScale: (timeScale: number) => void;
     setAssetLibraryOpen: (assetLibraryOpen: boolean) => void;
+    setPanelScrollPosition: (panelName: string, scrollTop: number) => void;
     reset: () => void;
     initAsyncData: () => void;
 }
@@ -50,6 +52,7 @@ const initialState: SpineViewerStore = {
     loopAnimations: true,
     timeScale: 1,
     assetLibraryOpen: false,
+    panelScrollPositions: {},
 }
 
 export const useSpineViewerStore = create<SpineViewerStore & SpineViewerActions>()(
@@ -80,6 +83,14 @@ export const useSpineViewerStore = create<SpineViewerStore & SpineViewerActions>
         },
         setAssetLibraryOpen: (assetLibraryOpen: boolean) => {
             set(_ => ({ assetLibraryOpen }))
+        },
+        setPanelScrollPosition: (panelName: string, scrollTop: number) => {
+            set(state => ({
+                panelScrollPositions: {
+                    ...state.panelScrollPositions,
+                    [panelName]: scrollTop
+                }
+            }))
         },
         setFilesLoading: (filesLoading: boolean) => {
             set(_ => ({ filesLoading }))

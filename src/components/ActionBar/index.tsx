@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useSpineViewerStore } from "../../store";
-import events from "../../events";
 import ActionPanel from "../ActionPanel";
 import Animations from "../ActionPanel/Animations";
 import Mixins from "../ActionPanel/Mixins";
@@ -82,10 +81,9 @@ const ActionBar: React.FC<ActionBarProps> = ({ accountId }) => {
                         aria-label="Load new Spine"
                         title="Load new Spine"
                         onClick={() => {
-                            const currentFiles = useSpineViewerStore.getState().loadedFiles;
-                            events.dispatchers.destroyPixiApp();
-                            useSpineViewerStore.getState().reset();
-                            useSpineViewerStore.getState().setSuspendedFiles(currentFiles);
+                            // Keep the current Pixi instance and loaded files
+                            // alive while the loader is open. A new upload or
+                            // selected saved asset will replace it explicitly.
                             setAssetLibraryOpen(true);
                         }}
                     >
@@ -95,7 +93,10 @@ const ActionBar: React.FC<ActionBarProps> = ({ accountId }) => {
                 </div>
             </div>
             {savedAssetsOpen && <SavedAssetsDropdown accountId={accountId} onClose={() => setSavedAssetsOpen(false)} />}
-            <ActionPanel open={selectedActionMenuItem !== null}>
+            <ActionPanel
+                open={selectedActionMenuItem !== null}
+                panelKey={selectedActionMenuItem?.name ?? ""}
+            >
                 {selectedActionMenuItem && getCurrentPanel(selectedActionMenuItem.name)}
             </ActionPanel>
         </>

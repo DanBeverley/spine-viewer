@@ -3,15 +3,18 @@
     top: var(--header-height);
     left: var(--action-bar-width);
     z-index: 30;
-    width: min(300px, calc(100vw - var(--action-bar-width) - 1rem));
+    width: min(var(--action-panel-width), calc(100vw - var(--action-bar-width) - 1rem));
     max-height: min(70vh, 420px);
     overflow-y: auto;
     padding: 0.5rem;
     color: var(--text-color);
-    background: rgba(16, 22, 26, 0.88);
+    background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.22);
     box-shadow: var(--box-shadow);
     backdrop-filter: blur(8px);
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
 }
 
 .saved-assets-dropdown__header {
@@ -30,6 +33,7 @@
     background: transparent;
     font-size: 1.4rem;
     cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .saved-assets-dropdown__list {
@@ -50,6 +54,9 @@
     background: transparent;
     text-align: left;
     cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .saved-assets-dropdown__item:hover,
