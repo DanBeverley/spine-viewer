@@ -26,11 +26,29 @@ interface LegacyLocalAsset {
     files: FileEntry[];
 }
 
+const getFolderName = (file: FileEntry): string | undefined => {
+    if (!file.path) return undefined;
+
+    const segments = file.path.replace(/\\/g, "/").split("/").filter(Boolean);
+    if (segments.length < 2) return undefined;
+
+    const folderName = segments[segments.length - 2].trim();
+    if (!folderName || folderName.toLowerCase() === "fakepath") return undefined;
+    return folderName;
+};
+
 const getAssetName = (files: FileEntry[]): string => {
     const primaryFile = files.find(file => file.type.toLowerCase() === "json")
         ?? files.find(file => file.type.toLowerCase() === "skel");
 
     if (!primaryFile) throw new Error("A Spine asset must include a JSON or SKEL file.");
+
+    // react-dropzone preserves the relative folder path for directory/batch
+    // uploads. Prefer that folder as the library name, while retaining the
+    // file-based fallback for normal file-picker uploads.
+    const folderName = getFolderName(primaryFile) ?? files.map(getFolderName).find(Boolean);
+    if (folderName) return folderName;
+
     const filename = primaryFile.name.replace(/\\/g, "/").split("/").pop() ?? primaryFile.name;
     return filename.replace(/\.(json|skel)$/i, "") || "Untitled Spine";
 };
