@@ -414,18 +414,100 @@ class PixiService {
     }
 
     private addOnScrollListener() {
+        const view = this.app?.view as HTMLCanvasElement | undefined;
+    
+        if (!view) return;
+    
         const onScroll = this.onScroll.bind(this);
-        this.app?.view.addEventListener('wheel', onScroll);
-
-        const removeOnScrollHandler = () => {
-            this.app?.view.removeEventListener('wheel', onScroll);
+    
+        let initialPinchDistance: number | null = null;
+        let initialPinchScale = 1;
+    
+        const getTouchDistance = (touches: TouchList) => {
+            const firstTouch = touches[0];
+            const secondTouch = touches[1];
+    
+            const x = secondTouch.clientX - firstTouch.clientX;
+            const y = secondTouch.clientY - firstTouch.clientY;
+    
+            return Math.hypot(x, y);
         };
-
+    
+        const onTouchStart = (event: TouchEvent) => {
+            if (event.touches.length !== 2 || !this.spine) return;
+    
+            event.preventDefault();
+    
+            // Stop normal one-finger dragging while pinching.
+            this.dragging = false;
+            this.spine.alpha = 1;
+    
+            initialPinchDistance = getTouchDistance(event.touches);
+            initialPinchScale = this.spine.transform.scale.x;
+        };
+    
+        const onTouchMove = (event: TouchEvent) => {
+            if (
+                event.touches.length !== 2 ||
+                !this.spine ||
+                !initialPinchDistance
+            ) {
+                return;
+            }
+    
+            event.preventDefault();
+    
+            this.dragging = false;
+    
+            const currentDistance = getTouchDistance(event.touches);
+    
+            const newScale = Math.max(
+                0.02,
+                initialPinchScale *
+                    (currentDistance / initialPinchDistance)
+            );
+    
+            this.spine.transform.scale.x = newScale;
+            this.spine.transform.scale.y = newScale;
+        };
+    
+        const onTouchEnd = (event: TouchEvent) => {
+            if (event.touches.length < 2) {
+                initialPinchDistance = null;
+            }
+        };
+    
+        // Prevent Safari from treating the canvas pinch as webpage zoom.
+        view.style.touchAction = 'none';
+    
+        // Existing desktop zoom.
+        view.addEventListener('wheel', onScroll);
+    
+        // iPhone / iPad pinch zoom.
+        view.addEventListener('touchstart', onTouchStart, {
+            passive: false
+        });
+    
+        view.addEventListener('touchmove', onTouchMove, {
+            passive: false
+        });
+    
+        view.addEventListener('touchend', onTouchEnd);
+        view.addEventListener('touchcancel', onTouchEnd);
+    
+        const removeOnScrollHandler = () => {
+            view.removeEventListener('wheel', onScroll);
+            view.removeEventListener('touchstart', onTouchStart);
+            view.removeEventListener('touchmove', onTouchMove);
+            view.removeEventListener('touchend', onTouchEnd);
+            view.removeEventListener('touchcancel', onTouchEnd);
+        };
+    
         this.handlerRemovers.push({
             name: PixiServiceRemoveHandlers.ON_SCROLL,
             removeHandler: removeOnScrollHandler
-        });
-    }
+    });
+}
 
     private onResize() {
         if (this.app && this.app.view) {
